@@ -1,96 +1,90 @@
 (async () => {
-  // CONFIGURA QUI
-  const owner = 'TombaccoTommaso'; // es. 'mionome'
-  const repo  = 'FinalWebsite';      // es. 'sito'
-  const path  = 'verbali'; // es. 'assets/verbali' (no trailing slash)
-  const branch = 'main'; // o 'master' o altra branch
+  const owner = 'TombaccoTommaso';
+  const repo  = 'FinalWebsite';
+  const branch = 'main';
+  const GITHUB_TOKEN = ''; // opzionale
 
-  // Se vuoi usare un token personale (migliore per molti accessi),
-  // inseriscilo qui. Attenzione: non mettere token in repo pubblica.
-  const GITHUB_TOKEN = ''; // lascia vuoto per accesso anonimo
-
-  const targetDivId = 'verbali_files'; // id del div dove mettere la lista
-
-  const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
+  // Lista dinamica di cartelle → div
+  const folders = [
+    { idDiv: 'verbali_files', path: 'verbali' },
+    { idDiv: 'candidatura_files', path: 'candidatura' }
+    // aggiungi altre cartelle qui
+  ];
 
   const headers = GITHUB_TOKEN ? { Authorization: 'token ' + GITHUB_TOKEN } : {};
 
-  try {
-    const res = await fetch(apiUrl, { headers });
-    if (!res.ok) throw new Error(`GitHub API errore: ${res.status} ${res.statusText}`);
+  const humanFileSize = (size) => {
+    if (size === 0) return '0 B';
+    const i = Math.floor(Math.log(size) / Math.log(1024));
+    const units = ['B','KB','MB','GB','TB'];
+    return (size / Math.pow(1024, i)).toFixed(i ? 1 : 0) + ' ' + units[i];
+  };
 
-    const items = await res.json();
-    if (!Array.isArray(items)) throw new Error('La risposta non è una lista (controlla path/branch).');
-
-    // Filtra solo file .pdf (case-insensitive), e prendi name, size, download_url
-    const pdfs = items
-      .filter(it => it.type === 'file' && /\.pdf$/i.test(it.name))
-      .map(it => ({ name: it.name, size: it.size, download_url: it.download_url, path: it.path }));
-
-    // Ordina alfabeticamente
-    pdfs.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-
-    const container = document.getElementById(targetDivId);
+  for (const folder of folders) {
+    const container = document.getElementById(folder.idDiv);
+    console.log(document.getElementById(folder.idDiv));
     if (!container) {
-      console.error(`Elemento con id "${targetDivId}" non trovato.`);
-      return;
+      console.warn(`Elemento con id "${folder.idDiv}" non trovato.`);
+      continue;
     }
 
-    // Svuota contenuto e costruisci lista
-    container.innerHTML = '';
-    if (pdfs.length === 0) {
-      container.textContent = 'Nessun PDF trovato in questa cartella.';
-      return;
-    }
+    const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeURIComponent(folder.path)}?ref=${encodeURIComponent(branch)}`;
 
-    const ul = document.createElement('ul');
-    ul.style.listStyle = 'none';
-    ul.style.padding = '0';
-    ul.style.margin = '0';
+    try {
+      const res = await fetch(apiUrl, { headers });
+      if (!res.ok) throw new Error(`GitHub API errore: ${res.status} ${res.statusText}`);
 
-    const humanFileSize = (size) => {
-      if (size === 0) return '0 B';
-      const i = Math.floor(Math.log(size) / Math.log(1024));
-      const units = ['B','KB','MB','GB','TB'];
-      return (size / Math.pow(1024, i)).toFixed(i ? 1 : 0) + ' ' + units[i];
-    };
+      const items = await res.json();
+      if (!Array.isArray(items)) throw new Error('La risposta non è una lista (controlla path/branch).');
 
-    pdfs.forEach(p => {
-      const li = document.createElement('li');
-      li.style.margin = '6px 0';
-      li.style.padding = '6px';
-      li.style.borderRadius = '6px';
-      li.style.display = 'flex';
-      li.style.gap = '10px';
-      li.style.alignItems = 'center';
+      const pdfs = items
+        .filter(it => it.type === 'file' && /\.pdf$/i.test(it.name))
+        .map(it => ({ name: it.name, size: it.size, download_url: it.download_url }));
 
-      // Link al raw (download/view)
-      // download_url è già in formato raw.githubusercontent (se pubblico); usalo.
-      const a = document.createElement('a');
-      a.href = p.download_url;
-      a.textContent = p.name;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.style.textDecoration = 'none';
-      a.style.fontWeight = '600';
+      pdfs.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-      const meta = document.createElement('small');
-      meta.textContent = ` — ${humanFileSize(p.size)}`;
-      meta.style.color = '#666';
-      meta.style.marginLeft = '6px';
+      container.innerHTML = '';
+      if (pdfs.length === 0) {
+        container.textContent = 'Nessun file trovato in questa cartella.';
+        continue;
+      }
 
-      li.appendChild(a);
-      li.appendChild(meta);
+      const ul = document.createElement('ul');
+      ul.style.listStyle = 'none';
+      ul.style.padding = '0';
+      ul.style.margin = '0';
 
-      ul.appendChild(li);
-    });
+      pdfs.forEach(p => {
+        const li = document.createElement('li');
+        li.style.margin = '6px 0';
+        li.style.padding = '6px';
+        li.style.borderRadius = '6px';
+        li.style.display = 'flex';
+        li.style.gap = '10px';
+        li.style.alignItems = 'center';
 
-    container.appendChild(ul);
+        const a = document.createElement('a');
+        a.href = p.download_url;
+        a.textContent = p.name;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.style.fontWeight = '600';
 
-  } catch (err) {
-    console.error(err);
-    const container = document.getElementById(targetDivId);
-    if (container) {
+        const meta = document.createElement('small');
+        meta.textContent = ` — ${humanFileSize(p.size)}`;
+        meta.style.color = '#666';
+        meta.style.marginLeft = '6px';
+
+        li.appendChild(a);
+        li.appendChild(meta);
+
+        ul.appendChild(li);
+      });
+
+      container.appendChild(ul);
+
+    } catch (err) {
+      console.error(err);
       container.innerHTML = `<div style="color:crimson">Errore: ${err.message}</div>`;
     }
   }

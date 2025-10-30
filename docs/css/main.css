@@ -44,6 +44,18 @@ aside{
     cursor: pointer;
 }
 
+.subtitle, .files_title
+{
+    color: #a5abbd;
+}
+
+.files_title{
+    padding-left: 30px;
+    background-image: url(../assets/folder.png);
+    background-repeat: no-repeat;
+    background-size: 24px;
+}
+
 .socials{
     display: flex;
     gap: 20px;
@@ -61,4 +73,28 @@ aside{
     width: 70%;
     box-sizing: border-box;
     padding: 50px;
+}
+
+.files_list{
+    margin-left: 30px;
+}
+
+#verbali_files a{
+    color: #00b1b9;
+    text-decoration: none;
+}
+
+#verbali_files a:hover{
+    text-decoration: underline;
+}
+
+#verbali_files a:visited{
+    color: #66c2c8;
+}
+
+.intro{
+    box-sizing: border-box;
+    padding: 20px;
+    background-color: var(--aside_bg);
+    border-radius: 10px;
 }
